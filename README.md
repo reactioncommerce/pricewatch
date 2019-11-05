@@ -68,14 +68,14 @@ docker-compose kill web
 Testing is fastest through the REPL, as you avoid environment startup time.
 
 ```clojure
-dev=> (test)
+dev=> (test :unit)
 ...
 ```
 
 But you can also run tests through a standalone command:
 
 ```sh
-docker-compose run --rm web bin/test
+docker-compose run --rm web bin/test --watch
 ```
 
 ## Legal
