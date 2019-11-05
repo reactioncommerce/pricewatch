@@ -9,24 +9,17 @@
     [clojure.tools.namespace.repl :refer [refresh]]
     [duct.core :as duct]
     [duct.core.repl :as duct-repl]
-    [eftest.runner :as eftest]
     [fipp.edn :refer [pprint]]
     [integrant.core :as ig]
     [integrant.repl :refer [clear halt go init prep reset]]
     [integrant.repl.state :refer [config system]]
-    [kaocha.repl :as test :refer [run] :rename {run test}]
-    [ragtime.core :as ragtime]
-    [ragtime.jdbc :as ragtime-jdbc]
-    [ragtime.repl :as ragtime-repl]))
+    [kaocha.repl :as test :refer [run] :rename {run test}]))
 
 
 (duct/load-hierarchy)
 
 (defn read-config []
   (duct/read-config (io/resource "reaction/pricewatch/config.edn")))
-
-(defn test []
-  (eftest/run-tests (eftest/find-tests "test")))
 
 (def profiles
   "These profiles are used when prepping the system."
