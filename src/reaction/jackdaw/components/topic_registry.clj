@@ -1,22 +1,16 @@
 (ns reaction.jackdaw.components.topic-registry
   (:require
-    [rp.jackdaw.resolver :as resolver]
+    [clojure.spec.alpha :as s]
     [rp.jackdaw.topic-registry :refer [map->TopicRegistry]]
-    [integrant.core :as ig]))
+    [com.stuartsierra.component :refer [start stop]]
+    [integrant.core :as ig]
+    [jackdaw.specs :as jspecs]))
 
-;; Override the rp start stop because they're directly implemented in the
-;; component protocol.
+(s/def ::topic-metadata
+  (s/map-of keyword? (s/merge :jackdaw.serde-client/topic
+                              :jackdaw.creation-client/topic)))
 
-(defn- start
-  [{:keys [topic-metadata schema-registry-url serde-resolver-fn type-registry]
-    :as this}]
-  (assoc this
-         :topic-configs
-         (resolver/resolve-topics topic-metadata serde-resolver-fn)))
-
-(defn- stop
-  [this]
-  this)
+(s/def ::topic-registry (s/keys :req-un [::topic-metadata]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -29,3 +23,6 @@
 (defmethod ig/halt-key! :reaction.jackdaw.components/topic-registry
   [_ this]
   (stop this))
+
+(defmethod ig/pre-init-spec :reaction.jackdaw.components/topic-registry [_]
+  ::topic-registry)
