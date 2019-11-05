@@ -80,4 +80,4 @@ docker-compose run --rm web bin/test
 
 ## Legal
 
-Copyright © 2018 Reaction Commerce, Inc.
+Copyright © 2019 Reaction Commerce, Inc.
