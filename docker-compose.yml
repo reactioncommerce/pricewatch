@@ -1,0 +1,33 @@
+---
+version: '3.7'
+
+networks:
+  api:
+    external:
+      name: api.reaction.localhost
+  streams:
+    external:
+      name: streams.reaction.localhost
+
+services:
+  # The main service and API.
+  web:
+    build:
+      context: .
+      target: development
+    env_file:
+      - ./.env
+    networks:
+      default:
+      api:
+      streams:
+    ports:
+      - "7375:7375"
+    volumes:
+      # Mount dependency caches from local host.
+      - $HOME/.m2:/root/.m2
+      - $HOME/.gitlibs:/root/.gitlibs
+      # Do not mount the .cpcache.
+      - /usr/src/app/.cpcache
+      # Mount the application.
+      - .:/usr/src/app

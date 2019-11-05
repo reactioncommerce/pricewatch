@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# starts an nREPL server (VS Code Calva extension works with NREPL)
+clojure -A:dev:test:nREPL 

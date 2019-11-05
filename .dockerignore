@@ -1,0 +1,7 @@
+.cpcache
+.env
+.k8s
+.lein-*
+.rebel_readline_history
+/target
+/dev/src/local

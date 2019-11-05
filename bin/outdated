@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Find newer versions of your dependencies in your deps.edn file.
+# See: https://github.com/Olical/depot
+
+clojure -Aoutdated -a outdated

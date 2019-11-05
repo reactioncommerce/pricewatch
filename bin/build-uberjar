@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Builds a project uberjar.
+# Only the extra test namespace is included to make the uberjar production
+# ready. As dev includes dev code and resources that we may not want to go into
+# the uberjar.
+#
+# Usage:
+#
+#    build-uberjar <UBERJAR_PATH>
+
+uberjar_path="$1"
+if [ -z "${uberjar_path}" ]; then
+  echo "uberjar path is required as first arg"
+  exit 1;
+fi
+
+aliases="$2"
+aliases_param=
+if [ -n "${aliases}" ]; then
+  aliases_param="--aliases ${aliases}";
+fi
+
+echo clojure \
+  -Auberjar \
+  "${aliases_param}" \
+  --target "${uberjar_path}"

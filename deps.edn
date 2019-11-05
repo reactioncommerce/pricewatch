@@ -1,0 +1,48 @@
+{:mvn/repos
+ {"io.confluent" {:url "https://packages.confluent.io/maven/"}}
+
+ :deps
+ {duct/core {:mvn/version "0.7.0"}
+  duct/logger {:mvn/version "0.3.0"}
+  duct/logger.timbre {:mvn/version "0.4.1"}
+  duct/module.logging {:mvn/version "0.4.0"}
+  fundingcircle/jackdaw {:mvn/version "0.6.9"}
+  org.clojure/clojure {:mvn/version "1.10.1"}
+  org.clojure/test.check {:mvn/version "0.9.0"}
+  org.clojure/tools.cli {:mvn/version "0.4.2"}
+  com.rentpath/rp-jackdaw-clj {:mvn/version "0.1.4"}}
+
+ :paths ["resources" "src"]
+
+ :aliases
+ {;; See https://github.com/hugoduncan/criterium/
+  ;; Usage:
+  ;;   (require '[criterium.core :refer [bench]])
+  ;;   (bench (your-expression))
+  :bench {:extra-deps {criterium {:mvn/version "RELEASE"}}}
+
+  ;; Load the development environment.
+  :dev {:extra-paths ["dev/resources" "dev/src"]
+        :extra-deps {cljfmt {:mvn/version "0.5.1"}
+                     expound {:mvn/version "0.7.1"}
+                     integrant/repl {:mvn/version "0.2.0"}}}
+
+  :nREPL {:extra-deps
+          {nrepl/nrepl {:mvn/version "0.6.0"}}
+          :main-opts ["-m" "nrepl.cmdline" "--bind" "0.0.0.0" "--port" "7375"]}
+
+  ;; List dependencies that have new available versions.
+  :outdated {:extra-deps {olical/depot {:mvn/version "1.5.1"}}
+             :main-opts ["-m" "depot.outdated.main"]}
+
+  ;; Launch an excellent readline REPL.
+  :rebel {:extra-deps {com.bhauman/rebel-readline {:mvn/version "0.1.4"}
+                       cljfmt {:mvn/version "0.5.7"}
+                       rewrite-clj {:mvn/version "0.5.2"}}
+          :main-opts  ["-m" "rebel-readline.main"]}
+
+  :test {:extra-deps {lambdaisland/kaocha {:mvn/version "0.0-554"}}
+         :extra-paths ["test"]}
+
+  :uberjar {:extra-deps {uberdeps {:mvn/version "0.1.4"}}
+              :main-opts ["-m" "uberdeps.uberjar"]}}}

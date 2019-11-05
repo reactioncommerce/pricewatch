@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Launches a dev environment.
+
+clojure -Abench:dev:rebel:test

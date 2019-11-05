@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Runs the project from an uberjar.
+#
+# Usage:
+#
+#    run-uberjar <UBERJAR_PATH>
+
+UBERJAR_PATH="$1"
+if [ -z "$UBERJAR_PATH" ]; then
+  echo "UBERJAR_PATH is required as first arg" >&2
+  exit 1;
+fi
+
+# If JVM_OPTS is set then they will be passed on and merged with alias opts.
+# See: https://docs.oracle.com/javase/9/tools/java.htm#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE__BABHDABI
+# Build the run command.
+cmd="java ${JVM_OPTS} -cp "${UBERJAR_PATH}" clojure.main -m reaction.pricewatch.main run"
+
+echo "Starting uberjar with command: $cmd" >&2
+
+$cmd

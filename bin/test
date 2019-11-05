@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Runs test with Kaocha.
+#
+#     test --help
+#
+# See Kaocha docs for more details.
+# https://cljdoc.org/d/lambdaisland/kaocha/0.0-554/doc/1-introduction
+
+clojure -A:test -m kaocha.runner "$@"

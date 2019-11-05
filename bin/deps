@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Launches a dev environment.
+
+clojure -A:bench:dev:outdated:pack:rebel:test \
+        -Stree
