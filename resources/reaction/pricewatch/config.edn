@@ -2,6 +2,15 @@
  {;; All profiles inherit from base.
   :duct.core/project-ns reaction.pricewatch
 
+  :reaction.pricewatch/topology
+  {:topic-registry #ig/ref :reaction.jackdaw.components/topic-registry}
+
+  :reaction.jackdaw.components/processor
+  {:app-config {"application.id" "reaction.pricewatch"
+                "bootstrap.servers" "kafka.streams.reaction.localhost:9092"}
+   :topic-registry #ig/ref :reaction.jackdaw.components/topic-registry
+   :topology-builder-fn #ig/ref :reaction.pricewatch/topology}
+
   :reaction.jackdaw.components/topic-registry
   {:schema-registry-url "http://schema-registry.streams.reaction.localhost:8081"
    :topic-metadata
