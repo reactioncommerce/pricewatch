@@ -1,10 +1,30 @@
 {:duct.profile/base
  {;; All profiles inherit from base.
-  :duct.core/project-ns reaction.pricewatch}
+  :duct.core/project-ns reaction.pricewatch
+
+  :reaction.pricewatch/topology
+  {:topic-registry #ig/ref :reaction.jackdaw.components/topic-registry}
+
+  :reaction.jackdaw.components/processor
+  {:app-config {"application.id" "reaction.pricewatch"
+                "bootstrap.servers" "kafka.streams.reaction.localhost:9092"}
+   :topic-registry #ig/ref :reaction.jackdaw.components/topic-registry
+   :topology-builder-fn #ig/ref :reaction.pricewatch/topology}
+
+  :reaction.jackdaw.components/topic-registry
+  {:schema-registry-url "http://schema-registry.streams.reaction.localhost:8081"
+   :topic-metadata
+   {:prices-by-id {:topic-name "reaction.pricing.prices-by-id-aggregates.avro-gen1"
+                   :replication-factor 1
+                   :partition-count 1
+                   :key-serde {:serde-keyword :jackdaw.serdes/string-serde}
+                   :value-serde {:serde-keyword :jackdaw.serdes.avro.confluent/serde
+                                 :schema-filename "reaction/pricewatch/avro/prices-by-id.json"}
+                   :topic-config {}}}}}
 
  :duct.profile/dev   #duct/include "reaction/pricewatch/dev"
  :duct.profile/local #duct/include "reaction/pricewatch/local"
  :duct.profile/prod  {}
 
  ;; Only Duct modules should be added to the top level config.
- :duct.module/logging {}}
+ :duct.module/logging{}}

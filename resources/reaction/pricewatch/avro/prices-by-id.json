@@ -1,0 +1,69 @@
+{
+  "type": "record",
+  "name": "PricesByIDAggregate_Gen1",
+  "namespace": "reaction.pricing",
+  "fields": [
+    {
+      "name": "causation_id",
+      "type": "string"
+    },
+    {
+      "name": "correlation_id",
+      "type": "string"
+    },
+    {
+      "name": "id",
+      "type": "string"
+    },
+    {
+      "name": "payload",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "PricebookEntry",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string"
+            },
+            {
+              "name": "enabled",
+              "type": "boolean",
+              "default": true
+            },
+            {
+              "name": "pricebook_id",
+              "type": "string"
+            },
+            {
+              "name": "price_tiers",
+              "type": {
+                "type": "array",
+                "items": {
+                  "type": "record",
+                  "name": "PriceTier",
+                  "fields": [
+                    {
+                      "name": "quantity",
+                      "type": "int"
+                    },
+                    {
+                      "name": "price",
+                      "type": "double"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "timestamp",
+      "type": "long"
+    }
+  ],
+  "description": "PricesByID aggregate."
+}
