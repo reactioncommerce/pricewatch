@@ -5,12 +5,12 @@
   ;; The Kafka Streams application.
   :reaction.pricewatch/processor
   {:app-config {"application.id" "reaction.pricewatch"
-                "bootstrap.servers" "kafka.streams.reaction.localhost:9092"}
+                "bootstrap.servers" #duct/env "KAFKA_BOOTSTRAP_SERVERS"}
    :topic-registry #ig/ref :reaction.pricewatch/topic-registry}
 
   ;; A registry of Kafka topics used in the application.
   :reaction.pricewatch/topic-registry
-  {:schema-registry-url "http://schema-registry.streams.reaction.localhost:8081"
+  {:schema-registry-url #duct/env "SCHEMA_REGISTRY_URL"
    :topic-metadata
    {:prices-by-id {:topic-name "reaction.pricing.prices-by-id-aggregates.avro-gen1"
                    :replication-factor 1
