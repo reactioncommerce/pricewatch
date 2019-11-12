@@ -25,7 +25,8 @@
   :dev {:extra-paths ["dev/resources" "dev/src"]
         :extra-deps {cljfmt {:mvn/version "0.5.1"}
                      expound {:mvn/version "0.7.1"}
-                     integrant/repl {:mvn/version "0.2.0"}}}
+                     integrant/repl {:mvn/version "0.2.0"}
+                     nrepl {:mvn/version "0.6.0"}}}
 
   :nREPL {:extra-deps
           {nrepl/nrepl {:mvn/version "0.6.0"}}

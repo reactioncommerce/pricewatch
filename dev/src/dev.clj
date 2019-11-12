@@ -13,10 +13,18 @@
     [integrant.core :as ig]
     [integrant.repl :refer [clear halt go init prep reset]]
     [integrant.repl.state :refer [config system]]
-    [kaocha.repl :as test :refer [run] :rename {run test}]))
+    [kaocha.repl :as test :refer [run] :rename {run test}]
+    [reaction.nrepl :as nrepl]))
 
 
 (duct/load-hierarchy)
+
+(defn nrepl
+  "Starts an embedded nrepl."
+  []
+  (let [bind (or (System/getenv "NREPL_BIND") "0.0.0.0")
+        port (Integer/parseInt (or (System/getenv "NREPL_PORT") "7375"))]
+    (nrepl/start {:bind bind :port port})))
 
 (defn read-config []
   (duct/read-config (io/resource "reaction/pricewatch/config.edn")))

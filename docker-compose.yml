@@ -22,7 +22,7 @@ services:
       api:
       streams:
     ports:
-      - "7375:7375"
+      - "7375"
     volumes:
       # Mount dependency caches from local host.
       - $HOME/.m2:/root/.m2
