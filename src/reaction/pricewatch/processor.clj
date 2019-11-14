@@ -22,7 +22,7 @@
     [com.stuartsierra.component :refer [start stop]]
     [integrant.core :as ig]
     [jackdaw.streams :as streams]
-    [rp.jackdaw.processor :refer [map->Processor]]))
+    [rp.jackdaw.processor :as processor]))
 
 
 (def watches-table
@@ -32,7 +32,7 @@
   management for this data set."
   (atom {"product1" [{:user-id "demo"
                       :email "code-examples@reactioncommerce.com"
-                      :product-id "product1"
+                      :product-id "sku1"
                       :start-price 100.00}]}))
 
 
@@ -62,34 +62,59 @@
   (println "Notification: Price dropped!" watch))
 
 (defn do-watches!
-  "Performs price watches given a product-id `k`, prices-by-id value `v` and
-  a pricewatches table `db`."
-  [k v db]
+  "Performs price watches given a product-id `k`, prices-by-id value `v` and a
+  pricewatches table `db`."
+  [db k v]
   (let [watches (watches-for-product db k)
         matching-watches (filter #(pricewatch-match? v %) watches)]
     (for [watch matching-watches]
       (act-on-pricewatch-match! v watch))))
 
+(defn do-watches!-fn
+  "Returns a configured do-watches! function configured with a pricewatch db."
+  [db]
+  (fn [[k v]] (do-watches! db k v)))
 
 (defn topology-builder-fn
   "Returns a function that applies topology DSL to the provided builder."
-  [{:keys [topic-configs]}]
-  (fn [builder]
-    (-> (streams/kstream builder (:prices-by-id topic-configs))
-        (streams/for-each! (fn [[k v]] (do-watches! k v watches-table))))
-    builder))
+  [opts]
+  (let [topic-configs (get-in opts [:topic-registry :topic-configs])
+        {:keys [prices-by-id pricewatch-matches]} topic-configs]
+    (fn [builder]
+      (-> builder
+          (streams/kstream prices-by-id)
+          (streams/peek (do-watches!-fn watches-table))
+          (streams/to pricewatch-matches))
+      builder)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; Integrant methods
 ;;;;
 
+(defmethod ig/init-key :reaction.pricewatch.processor/topology-builder-fn
+  [_ opts]
+  topology-builder-fn)
+
+(defmethod ig/halt-key! :reaction.pricewatch.processor/topology-builder-fn
+  [_ opts]
+  nil)
+
 (defmethod ig/init-key :reaction.pricewatch/processor
   [_ opts]
-  (-> opts
-      (assoc :topology-builder-fn topology-builder-fn)
-      map->Processor
-      start))
+  (-> opts processor/map->Processor start))
 
 (defmethod ig/halt-key! :reaction.pricewatch/processor
+  [_ this]
+  (stop this))
+
+(defmethod ig/halt-key! :reaction.pricewatch/processor
+  [_ this]
+  (stop this))
+
+(defmethod ig/init-key :reaction.pricewatch/mock-processor
+  [_ opts]
+  (-> opts processor/map->MockProcessor start))
+
+(defmethod ig/halt-key! :reaction.pricewatch/mock-processor
   [_ this]
   (stop this))
