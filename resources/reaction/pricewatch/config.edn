@@ -6,7 +6,12 @@
   :reaction.pricewatch/processor
   {:app-config {"application.id" "reaction.pricewatch"
                 "bootstrap.servers" #duct/env "KAFKA_BOOTSTRAP_SERVERS"}
+   :topology-builder-fn #ig/ref :reaction.pricewatch.processor/topology-builder-fn
    :topic-registry #ig/ref :reaction.pricewatch/topic-registry}
+
+  ;; Topology builder function used by the processor.
+  :reaction.pricewatch.processor/topology-builder-fn
+  {:topic-registry #ig/ref :reaction.pricewatch/topic-registry}
 
   ;; A registry of Kafka topics used in the application.
   :reaction.pricewatch/topic-registry
@@ -18,7 +23,13 @@
                    :key-serde {:serde-keyword :jackdaw.serdes/string-serde}
                    :value-serde {:serde-keyword :jackdaw.serdes.avro.confluent/serde
                                  :schema-filename "reaction/pricewatch/avro/prices-by-id.json"}
-                   :topic-config {}}}}}
+                   :topic-config {}}
+    :pricewatch-matches {:topic-name "reaction.pricewatch.matches.json-gen1"
+                         :replication-factor 1
+                         :partition-count 10
+                         :key-serde {:serde-keyword :jackdaw.serdes/string-serde}
+                         :value-serde {:serde-keyword :jackdaw.serdes.json/serde}
+                         :topic-config {}}}}}
 
  :duct.profile/dev   #duct/include "reaction/pricewatch/dev"
  :duct.profile/local #duct/include "reaction/pricewatch/local"

@@ -8,10 +8,10 @@
   resolved and ready topics are stored in the `:topic-configs` keys."
   (:require
     [clojure.spec.alpha :as s]
-    [rp.jackdaw.topic-registry :refer [map->TopicRegistry]]
     [com.stuartsierra.component :refer [start stop]]
     [integrant.core :as ig]
-    [jackdaw.specs :as jspecs]))
+    [jackdaw.specs :as jspecs]
+    [rp.jackdaw.topic-registry :as topic-registry]))
 
 (s/def ::topic-metadata
   (s/map-of keyword? (s/merge :jackdaw.serde-client/topic
@@ -22,9 +22,21 @@
 
 (defmethod ig/init-key :reaction.pricewatch/topic-registry
   [_ opts]
-  (-> opts map->TopicRegistry start))
+  (-> opts topic-registry/map->TopicRegistry start))
 
 (defmethod ig/halt-key! :reaction.pricewatch/topic-registry
+  [_ this]
+  (stop this))
+
+(defmethod ig/pre-init-spec :reaction.pricewatch/topic-registry [_]
+  ::topic-registry)
+
+
+(defmethod ig/init-key :reaction.pricewatch/mock-topic-registry
+  [_ opts]
+  (-> opts topic-registry/map->MockTopicRegistry start))
+
+(defmethod ig/halt-key! :reaction.pricewatch/mock-topic-registry
   [_ this]
   (stop this))
 
