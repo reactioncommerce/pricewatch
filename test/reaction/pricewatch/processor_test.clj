@@ -2,7 +2,7 @@
   (:require
     [clojure.test :refer [deftest is testing]]
     [integrant.core :as ig]
-    [reaction.pricewatch.processor]
+    [reaction.pricewatch.processor :refer :all]
     [reaction.pricewatch.topic-registry]
     [rp.jackdaw.processor :as processor]))
 
@@ -67,3 +67,33 @@
                            :price-tiers [{:quantity 1 :price 5.0}]}]
                 :timestamp 1563851658109}]]
              (processor/mock-get-keyvals processor :pricewatch-matches))))))
+
+(deftest lowest-price-test
+  (testing "output is only price"
+    (is (= 5.0
+         (lowest-price {:causation_id "15531a0a-b4db-4bb8-8455-4faeee7afee5"
+                        :correlation_id "15531a0a-b4db-4bb8-8455-4faeee7afee5"
+                        :id "ddfb2baa-40b5-4e33-99a0-c6c0a223ecd9"
+                        :payload [{:id "sku1"
+                                   :enabled true
+                                   :pricebook_id "system-check-usd"
+                                   :price_tiers [{:quantity 1
+                                                  :price 5.0}]}]
+                        :timestamp 1563851658109}))))
+
+  (testing "output is lowest price across multiple pricebook entries"
+    (is (= 2.0
+         (lowest-price {:causation_id "15531a0a-b4db-4bb8-8455-4faeee7afee5"
+                        :correlation_id "15531a0a-b4db-4bb8-8455-4faeee7afee5"
+                        :id "ddfb2baa-40b5-4e33-99a0-c6c0a223ecd9"
+                        :payload [{:id "sku1"
+                                   :enabled true
+                                   :pricebook_id "pricebook1"
+                                   :price_tiers [{:quantity 1
+                                                  :price 5.0}]},
+                                   {:id "sku1"
+                                     :enabled true
+                                     :pricebook_id "pricebook2"
+                                     :price_tiers [{:quantity 1
+                                                    :price 2.0}]}]
+                        :timestamp 1563851658109})))))
