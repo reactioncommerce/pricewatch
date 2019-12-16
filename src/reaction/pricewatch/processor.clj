@@ -40,11 +40,12 @@
 
 (defn lowest-price
   "Gets the lowest price available in the price-by-id record. This simple
-  implmentation takes the minimum of all prices."
+  implmentation takes the minimum of all prices, using the first pricing tier."
   [prices-by-id]
-  (let [payload (:payload prices-by-id)]
-    (reduce min (map #(-> % :price_tiers first :price)
-                    payload))))
+  (->> prices-by-id
+       :payload
+       (map #(-> % :price-tiers first :price))
+       (reduce min)))
 
 (defn pricewatch-match?
   "Predicate that returns true when pricewatch conditions are met. This
