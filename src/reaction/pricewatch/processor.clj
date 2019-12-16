@@ -95,11 +95,11 @@
 ;;;;
 
 (defmethod ig/init-key :reaction.pricewatch.processor/topology-builder-fn
-  [_ opts]
+  [_ _]
   topology-builder-fn)
 
 (defmethod ig/halt-key! :reaction.pricewatch.processor/topology-builder-fn
-  [_ opts]
+  [_ _]
   nil)
 
 (defmethod ig/init-key :reaction.pricewatch/processor
