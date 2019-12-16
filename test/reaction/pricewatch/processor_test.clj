@@ -57,15 +57,13 @@
                               :price-tiers [{:quantity 1 :price 5.0}]}]
                    :timestamp 1563851658109})
 
-      (is (= [["sku1"
-               {:causation-id "15531a0a-b4db-4bb8-8455-4faeee7afee5"
-                :correlation-id "15531a0a-b4db-4bb8-8455-4faeee7afee5"
-                :id "ddfb2baa-40b5-4e33-99a0-c6c0a223ecd9"
-                :payload [{:id "sku1"
-                           :enabled true
-                           :pricebook-id "system-check-usd"
-                           :price-tiers [{:quantity 1 :price 5.0}]}]
-                :timestamp 1563851658109}]]
+      (is (= [["sku1:demo"
+               {:pricing {:min 5.0}
+                :pricewatch {:email "code-examples@reactioncommerce.com",
+                             :id "sku1:demo",
+                             :product-id "sku1",
+                             :start-price 100.0,
+                             :user-id "demo"}}]]
              (processor/mock-get-keyvals processor :pricewatch-matches))))))
 
 (deftest lowest-price-test

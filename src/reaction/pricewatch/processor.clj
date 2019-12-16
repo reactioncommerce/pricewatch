@@ -22,7 +22,9 @@
     [com.stuartsierra.component :refer [start stop]]
     [integrant.core :as ig]
     [jackdaw.streams :as streams]
-    [rp.jackdaw.processor :as processor]))
+    [rp.jackdaw.processor :as processor])
+  (:import
+    [org.apache.kafka.streams.kstream Transformer]))
 
 
 (def watches-table
@@ -30,11 +32,11 @@
   product-id to watches. The in-memory version is a map. Keys are the product-id
   and values are vectors of watches for that key. A production app would provide
   management for this data set."
-  (atom {"product1" [{:user-id "demo"
-                      :email "code-examples@reactioncommerce.com"
-                      :product-id "sku1"
-                      :start-price 100.00}]}))
-
+  (atom {"sku1" [{:id "sku1:demo"
+                  :user-id "demo"
+                  :email "code-examples@reactioncommerce.com"
+                  :product-id "sku1"
+                  :start-price 100.00}]}))
 
 (defn watches-for-product [db product-id] (get @db product-id))
 
@@ -51,32 +53,37 @@
   "Predicate that returns true when pricewatch conditions are met. This
   implementation checks if the new price has dropped 20% from the price set at
   the start of the watch."
-  [prices-by-id watch]
-  (boolean
-    (when (> (:start-price watch) 0)
-      (let [change-threshold 0.8
-            percent-change (/ (lowest-price prices-by-id) (:start-price watch))]
-        (<= percent-change change-threshold)))))
+  [watch prices-by-id]
+  (let [start-price (:start-price watch)
+        lowest-current (lowest-price prices-by-id)]
+    (try
+      (when (> start-price 0)
+        (let [change-threshold 0.8
+              percent-change (/ lowest-current start-price)]
+          (<= percent-change change-threshold)))
+      (catch Exception _ false))))
 
-(defn act-on-pricewatch-match!
-  "Performs actions when a pricewatch has an active match, presumably with
-  side-effects."
-  [price-by-id watch]
-  (println "Notification: Price dropped!" watch))
+(defn pricewatch-matches [db k v]
+  (->> (watches-for-product db k)
+       (filter #(pricewatch-match? % v))))
 
-(defn do-watches!
-  "Performs price watches given a product-id `k`, prices-by-id value `v` and a
-  pricewatches table `db`."
-  [db k v]
-  (let [watches (watches-for-product db k)
-        matching-watches (filter #(pricewatch-match? v %) watches)]
-    (for [watch matching-watches]
-      (act-on-pricewatch-match! v watch))))
-
-(defn do-watches!-fn
-  "Returns a configured do-watches! function configured with a pricewatch db."
-  [db]
-  (fn [[k v]] (do-watches! db k v)))
+(defn pricematch
+  "This is a stateful transformer. Within this transform context we can query
+  state stores and forward 0 or many messages downstream.  With that capability
+  we can query a state store for pricewatches and join them to price updates.
+  When we find a match we can forward a message to downstream watches."
+  []
+  (let [ctx (atom nil)]
+    (reify Transformer
+      (init [_ processor-context]
+        (swap! ctx (constantly processor-context)))
+      (close [_] nil)
+      (transform [_ k v]
+        ; Forward all matches downstream.
+        (doseq [match (pricewatch-matches watches-table k v)]
+          (.forward @ctx (:id match)
+                    {:pricewatch match
+                     :pricing {:min (lowest-price v)}}))))))
 
 (defn topology-builder-fn
   "Returns a function that applies topology DSL to the provided builder."
@@ -86,7 +93,7 @@
     (fn [builder]
       (-> builder
           (streams/kstream prices-by-id)
-          (streams/peek (do-watches!-fn watches-table))
+          (streams/transform pricematch)
           (streams/to pricewatch-matches))
       builder)))
 
