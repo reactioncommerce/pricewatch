@@ -6,6 +6,7 @@
   :reaction.pricewatch/processor
   {:app-config {"application.id" "reaction.pricewatch"
                 "bootstrap.servers" #duct/env "KAFKA_BOOTSTRAP_SERVERS"}
+   :logger #ig/ref :duct/logger
    :topology-builder-fn #ig/ref :reaction.pricewatch.processor/topology-builder-fn
    :topic-registry #ig/ref :reaction.pricewatch/topic-registry}
 
@@ -24,12 +25,20 @@
                    :value-serde {:serde-keyword :jackdaw.serdes.avro.confluent/serde
                                  :schema-filename "reaction/pricewatch/avro/prices-by-id.json"}
                    :topic-config {}}
-    :pricewatch-matches {:topic-name "reaction.pricewatch.matches.json-gen1"
-                         :replication-factor 1
-                         :partition-count 10
-                         :key-serde {:serde-keyword :jackdaw.serdes/string-serde}
-                         :value-serde {:serde-keyword :jackdaw.serdes.json/serde}
-                         :topic-config {}}}}}
+    :matches {:topic-name "reaction.pricewatch.matches.json-gen1"
+              :description "Output topic for pricewatch matches."
+              :replication-factor 1
+              :partition-count 10
+              :key-serde {:serde-keyword :jackdaw.serdes/string-serde}
+              :value-serde {:serde-keyword :jackdaw.serdes.json/serde}
+              :topic-config {}}
+    :watches {:topic-name "reaction.pricewatch.watches.json-gen1"
+              :description "Input topic that defines watches. Modeled as a table."
+              :replication-factor 1
+              :partition-count 10
+              :key-serde {:serde-keyword :jackdaw.serdes/string-serde}
+              :value-serde {:serde-keyword :jackdaw.serdes.json/serde}
+              :topic-config {"retention.policy" "compact"}}}}}
 
  :duct.profile/dev   #duct/include "reaction/pricewatch/dev"
  :duct.profile/local #duct/include "reaction/pricewatch/local"

@@ -20,25 +20,15 @@
   processor app."
   (:require
     [com.stuartsierra.component :refer [start stop]]
+    [duct.logger :as logger]
     [integrant.core :as ig]
     [jackdaw.streams :as streams]
+    [reaction.jackdaw.state-store :as store]
+    [rp.jackdaw.streams-extras :as extras]
     [rp.jackdaw.processor :as processor])
   (:import
     [org.apache.kafka.streams.kstream Transformer]))
 
-
-(def watches-table
-  "A simple in-memory data store for the price watches. The data is an index of
-  product-id to watches. The in-memory version is a map. Keys are the product-id
-  and values are vectors of watches for that key. A production app would provide
-  management for this data set."
-  (atom {"sku1" [{:id "sku1:demo"
-                  :user-id "demo"
-                  :email "code-examples@reactioncommerce.com"
-                  :product-id "sku1"
-                  :start-price 100.00}]}))
-
-(defn watches-for-product [db product-id] (get @db product-id))
 
 (defn lowest-price
   "Gets the lowest price available in the price-by-id record. This simple
@@ -63,38 +53,67 @@
           (<= percent-change change-threshold)))
       (catch Exception _ false))))
 
-(defn pricewatch-matches [db k v]
-  (->> (watches-for-product db k)
-       (filter #(pricewatch-match? % v))))
+;; State store results are of type org.apache.kafka.streams.KeyValue
+;; Use interop to get at the values.
+;; Is there a jackdaw function that provides this?
+(defn- kv-tuple [key-value]
+  [(.key key-value) (.value (.value key-value))])
 
 (defn pricematch
-  "This is a stateful transformer. Within this transform context we can query
-  state stores and forward 0 or many messages downstream.  With that capability
-  we can query a state store for pricewatches and join them to price updates.
-  When we find a match we can forward a message to downstream watches."
-  []
-  (let [ctx (atom nil)]
-    (reify Transformer
-      (init [_ processor-context]
-        (swap! ctx (constantly processor-context)))
-      (close [_] nil)
-      (transform [_ k v]
-        ; Forward all matches downstream.
-        (doseq [match (pricewatch-matches watches-table k v)]
-          (.forward @ctx (:id match)
-                    {:pricewatch match
-                     :pricing {:min (lowest-price v)}}))))))
+  "Stateful transformer that queries the watch state store to find pricewatches
+  for a given input `prices-by-id` record. For all watches, determines if the
+  watch conditions have been statisfied to trigger a price match.
+
+  Forwards all matches (0 or more) to the output kstream.
+
+  Requires the `opts` param for access to component configuration, using topic
+  config and logger."
+  [opts]
+  (let [logger (:logger opts)
+        topic-name (get-in opts [:topic-registry :topic-configs :watches
+                                 :topic-name])]
+    (fn []
+     (let [ctx (atom nil)]
+       (reify Transformer
+         (init [_ processor-context]
+           (swap! ctx (constantly processor-context)))
+         (close [_] nil)
+         (transform [_ price-key price-value]
+           (let [store (.getStateStore @ctx topic-name)
+                 watches (store/get-all-kvs store)] ;; TODO: use range query
+
+             ;; This debug logging can/should be removed.
+             (when logger
+               (doseq [watch watches]
+                 (logger/debug logger ::unfiltered-watch-found watch)))
+
+             ;; Filter watches that match the price drop and
+             ;; forward all matches downstream.
+             (doseq [watch (->> watches
+                                (map (comp second kv-tuple))
+                                (filter #(pricewatch-match? % price-value)))]
+               (.forward @ctx
+                         (:id watch)
+                         {:pricewatch watch
+                          :pricing {:min (lowest-price price-value)}})))))))))
 
 (defn topology-builder-fn
   "Returns a function that applies topology DSL to the provided builder."
   [opts]
   (let [topic-configs (get-in opts [:topic-registry :topic-configs])
-        {:keys [prices-by-id pricewatch-matches]} topic-configs]
+        {:keys [prices-by-id matches watches]} topic-configs
+        {:keys [topic-name]} watches]
     (fn [builder]
-      (-> builder
-          (streams/kstream prices-by-id)
-          (streams/transform pricematch)
-          (streams/to pricewatch-matches))
+      (let [prices-kstream (streams/kstream builder prices-by-id)]
+
+        ;; Create a ktable so we can query the watches state store.
+        (streams/ktable builder watches topic-name)
+
+        ;; Send price changes to stateful tranform processor and find matches.
+        (-> prices-kstream
+            (streams/transform (pricematch opts) [topic-name])
+            (streams/to matches)))
+
       builder)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

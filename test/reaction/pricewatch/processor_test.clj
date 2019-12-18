@@ -17,13 +17,20 @@
                   :value-serde {:serde-keyword :jackdaw.serdes.avro.confluent/serde
                                 :schema-filename "reaction/pricewatch/avro/prices-by-id.json"}
                   :topic-config {}}
-                 :pricewatch-matches
+                 :matches
                  {:topic-name "reaction.pricewatch.matches.json-gen1"
                   :replication-factor 1
                   :partition-count 10
                   :key-serde {:serde-keyword :jackdaw.serdes/string-serde}
                   :value-serde {:serde-keyword :jackdaw.serdes.json/serde}
-                  :topic-config {}}}}))
+                  :topic-config {}}
+                 :watches
+                 {:topic-name "reaction.pricewatch.watches.json-gen1"
+                  :replication-factor 1
+                  :partition-count 10
+                  :key-serde {:serde-keyword :jackdaw.serdes/string-serde}
+                  :value-serde {:serde-keyword :jackdaw.serdes.json/serde}
+                  :topic-config {"retention.policy" "compact"}}}}))
 
 
 (defn mock-topology-builder-fn [topic-registry]
@@ -42,9 +49,23 @@
         processor (mock-processor topic-registry topology-builder-fn)]
 
     (testing "output is empty without any publishing"
-      (is (= [] (processor/mock-get-keyvals processor :pricewatch-matches))))
+      (is (= [] (processor/mock-get-keyvals processor :matches))))
 
-    (testing "output equals input because we're temporarily using peek"
+    (testing "finds matches from the watches state store"
+      ;; Produce a watch.
+      (processor/mock-produce!  processor :watches "sku1:demo"
+                                {:id "sku1:demo"
+                                 :user-id "demo"
+                                 :email "code-examples@reactioncommerce.com"
+                                 :product-id "sku1"
+                                 :start-price 100.00})
+      (processor/mock-produce!  processor :watches "sku2:demo"
+                                {:id "sku2:demo"
+                                 :user-id "demo"
+                                 :email "code-examples@reactioncommerce.com"
+                                 :product-id "sku2"
+                                 :start-price 100.00})
+
       ;; Produce one record.
       (processor/mock-produce!
         processor :prices-by-id "sku1"
@@ -64,7 +85,7 @@
                              :product-id "sku1",
                              :start-price 100.0,
                              :user-id "demo"}}]]
-             (processor/mock-get-keyvals processor :pricewatch-matches))))))
+             (processor/mock-get-keyvals processor :matches))))))
 
 (deftest lowest-price-test
   (testing "output is only price"
