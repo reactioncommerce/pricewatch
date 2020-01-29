@@ -11,28 +11,25 @@
 
   - For each SKU where price is changed:
 
-    - Look for entries in the watches table that matches the sku
+    - Look for entries in the watches state-store that match the sku.
     - Evaluate pricewatch rules to determine if there are any active matches.
-    - Take action when a match is found. This simple example This can be printing, producing to
-      another topic, or taking direct action.
-
-  The processor is a Lightweight component wrapper around jackdaw Streams (DSL)
-  processor app."
+    - Publish matches to a Kafka topic. We'll leave it to another system to
+      consume the match events and send notifications.
+  "
   (:require
     [com.stuartsierra.component :refer [start stop]]
     [duct.logger :as logger]
     [integrant.core :as ig]
     [jackdaw.streams :as streams]
-    [reaction.jackdaw.state-store :as store]
-    [rp.jackdaw.streams-extras :as extras]
     [rp.jackdaw.processor :as processor])
   (:import
     [org.apache.kafka.streams.kstream Transformer]))
 
 
 (defn lowest-price
-  "Gets the lowest price available in the price-by-id record. This simple
-  implmentation takes the minimum of all prices, using the first pricing tier."
+  "Gets the lowest price available in the price-by-id record. This is a simple
+  implementation that takes the minimum of all prices using the first pricing
+  tier."
   [prices-by-id]
   (->> prices-by-id
        :payload
@@ -53,11 +50,18 @@
           (<= percent-change change-threshold)))
       (catch Exception _ false))))
 
-;; State store results are of type org.apache.kafka.streams.KeyValue
-;; Use interop to get at the values.
-;; Is there a jackdaw function that provides this?
-(defn- kv-tuple [key-value]
-  [(.key key-value) (.value (.value key-value))])
+(defn kv-tuple [key-value]
+  ;; State store results are of type `org.apache.kafka.streams.KeyValue`, where
+  ;; the value is a `ValueAndTimestamp`. 
+  [(.key key-value) (.value (.value key-value)) (.timestamp (.value key-value))])
+
+(defn unwrap-kv-store-value [record]
+  (-> record kv-tuple second))
+
+(defn query-range [store price-key]
+  (let [from (str price-key ":")
+        to   (str price-key ":" java.lang.Character/MAX_VALUE)]
+    (iterator-seq (.range store from to))))
 
 (defn pricematch
   "Stateful transformer that queries the watch state store to find pricewatches
@@ -79,19 +83,23 @@
            (swap! ctx (constantly processor-context)))
          (close [_] nil)
          (transform [_ price-key price-value]
+           ;; Watches are keyed with pattern `{price-id}:{user-id}`.
+           ;; This provides a known prefix for all watches on a given product.
+           ;; Scan the state-store over range of all possible suffixes to find
+           ;; all possible matches.
+           ;;
+           ;; Then filter on watches that match on the pricewatch rules.
            (let [store (.getStateStore @ctx topic-name)
-                 watches (store/get-all-kvs store)] ;; TODO: use range query
+                 watches (->> (query-range store price-key)
+                              (map unwrap-kv-store-value)
+                              (filter #(pricewatch-match? % price-value)))]
 
-             ;; This debug logging can/should be removed.
-             (when logger
-               (doseq [watch watches]
-                 (logger/debug logger ::unfiltered-watch-found watch)))
-
-             ;; Filter watches that match the price drop and
-             ;; forward all matches downstream.
-             (doseq [watch (->> watches
-                                (map (comp second kv-tuple))
-                                (filter #(pricewatch-match? % price-value)))]
+             (doseq [watch watches]
+               ;; We have a match. 🎉
+               ;; Forward the details downstream. Each message will be published
+               ;; to an output topic. These messages can be used as signals to
+               ;; notify users that they should buy now!
+               (logger/debug logger :pricewatch-match {:watch watch})
                (.forward @ctx
                          (:id watch)
                          {:pricewatch watch

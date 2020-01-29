@@ -5,7 +5,8 @@
   ;; The Kafka Streams application.
   :reaction.pricewatch/processor
   {:app-config {"application.id" "reaction.pricewatch"
-                "bootstrap.servers" #duct/env "KAFKA_BOOTSTRAP_SERVERS"}
+                "bootstrap.servers" #duct/env "KAFKA_BOOTSTRAP_SERVERS"
+                "cache.max.bytes.buffering" "0"}
    :logger #ig/ref :duct/logger
    :topology-builder-fn #ig/ref :reaction.pricewatch.processor/topology-builder-fn
    :topic-registry #ig/ref :reaction.pricewatch/topic-registry}
@@ -28,14 +29,14 @@
     :matches {:topic-name "reaction.pricewatch.matches.json-gen1"
               :description "Output topic for pricewatch matches."
               :replication-factor 1
-              :partition-count 10
+              :partition-count 1
               :key-serde {:serde-keyword :jackdaw.serdes/string-serde}
               :value-serde {:serde-keyword :jackdaw.serdes.json/serde}
               :topic-config {}}
     :watches {:topic-name "reaction.pricewatch.watches.json-gen1"
               :description "Input topic that defines watches. Modeled as a table."
               :replication-factor 1
-              :partition-count 10
+              :partition-count 1
               :key-serde {:serde-keyword :jackdaw.serdes/string-serde}
               :value-serde {:serde-keyword :jackdaw.serdes.json/serde}
               :topic-config {"retention.policy" "compact"}}}}}
