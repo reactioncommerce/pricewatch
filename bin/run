@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
+
 # Runs the project from source.
 # Since we're building Docker images and shipping containers, we're dynamically
 # running the code instead of using a pre-packaged uberjar.
-#
 
 # If JVM_OPTS is set then they will be passed on and merged with alias opts.
 # See: https://docs.oracle.com/javase/9/tools/java.htm#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE__BABHDABI
@@ -14,7 +14,5 @@ fi
 
 # Build the run command.
 cmd="clojure ${JVM_OPTS_ALL} -m reaction.pricewatch.main run"
-
-#echo "$cmd" >&2
 
 $cmd
